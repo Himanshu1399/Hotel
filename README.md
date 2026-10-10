@@ -1,2 +1,0 @@
-# Hotel
-Node_Hotel
