@@ -1,19 +1,35 @@
 const router = require("express").Router();
+const passport = require("../authentication/auth");
 const personModel = require("../models/person");
 
 // Create
-router.post("/", (req, res) => {
-  const personData = req.body;
-  const newPerson = new personModel(personData);
-  newPerson
-    .save()
-    .then(() => {
-      res.status(201).send("Person created successfully");
-    })
-    .catch((error) => {
-      res.status(400).send("Error creating person: " + error.message);
+router.post("/", async (req, res) => {
+  try {
+    const personData = req.body;
+    const existingPerson = await personModel.exists({
+      username: personData.username,
     });
+    if (existingPerson) {
+      return res.status(409).send("Username already exists");
+    }
+
+    const newPerson = new personModel(personData);
+    const savedPerson = await newPerson.save();
+
+    res.status(201).json({
+      message: "Person created successfully",
+      person: savedPerson,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).send("Username already exists");
+    }
+
+    return res.status(400).send("Error creating person: " + error.message);
+  }
 });
+
+router.use(passport.authenticate("local", { session: false }));
 
 // Get
 router.get("/", async (req, res) => {
