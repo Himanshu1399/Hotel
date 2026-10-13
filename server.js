@@ -34,3 +34,5 @@ app.use("/menu", menuRouter);
 app.use("/person", personRouter);
 
 app.listen(Port, console.log("Server Started Succesfully on Port:" + Port));
+
+//For Pushing in Git Step1-> git add . Step2-> git commit -m "message" Step3-> git push origin main
