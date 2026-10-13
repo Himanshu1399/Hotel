@@ -26,6 +26,8 @@ Put - Update
 Delete - Delete
 */
 
+//what is app.use(passport.initialize()) ?
+// `app.use(passport.initialize())` is a middleware function that initializes Passport.js in your Express application. It sets up the necessary configurations for Passport to work, allowing you to use authentication strategies (like local, JWT, OAuth, etc.) in your routes. This line is essential for enabling authentication features provided by Passport.js. It applies the Passport middleware to all incoming requests, so that you can use Passport's authentication methods in your route handlers.
 app.use(passport.initialize());
 
 app.use("/menu", menuRouter);

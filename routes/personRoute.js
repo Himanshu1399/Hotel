@@ -6,13 +6,14 @@ const personModel = require("../models/person");
 router.post("/", async (req, res) => {
   try {
     const personData = req.body;
+    // Check if the username already exists
     const existingPerson = await personModel.exists({
       username: personData.username,
     });
     if (existingPerson) {
       return res.status(409).send("Username already exists");
     }
-
+    // Create a new person instance and save it to the database
     const newPerson = new personModel(personData);
     const savedPerson = await newPerson.save();
 
@@ -21,14 +22,12 @@ router.post("/", async (req, res) => {
       person: savedPerson,
     });
   } catch (error) {
-    if (error.code === 11000) {
-      return res.status(409).send("Username already exists");
-    }
 
     return res.status(400).send("Error creating person: " + error.message);
   }
 });
 
+//session: false is used to indicate that we do not want to use sessions for authentication. Instead, we want to use token-based authentication (like JWT) where the client sends the token with each request, and the server verifies it without maintaining a session state.
 router.use(passport.authenticate("local", { session: false }));
 
 // Get
@@ -41,11 +40,12 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Find person by role
 router.get("/:role", async (req, res) => {
   try {
     const role = req.params.role;
     // Allowed Role
-    const allowedRoles = personModel.schema.path("work").enumValues;
+    const allowedRoles = personModel.schema.path("work").enumValues;// ["Owner", "Manager", "Chef", "Waiter", "Cleaner"];
     if (!allowedRoles.includes(role)) {
       return res.status(400).send("Invalid role");
     }
@@ -63,6 +63,7 @@ router.put("/:id", async (req, res) => {
       req.params.id,
       req.body,
       { new: true, runValidators: true },
+      //new: true option returns the updated document instead of the original, and runValidators: true ensures that the update operation respects the schema's validation rules.
     );
     if (!updatedPerson) {
       return res.status(404).send("Person not found");

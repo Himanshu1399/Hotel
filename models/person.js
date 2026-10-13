@@ -27,13 +27,18 @@ const personSchema = new mongoose.Schema({
 });
 
 personSchema.pre("save", async function () {
-  if (!this.isModified("password")) {
+  const person = this;
+  if (!person.isModified("password")) {
     return;
   }
 
   const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  person.password = await bcrypt.hash(person.password, salt);
 });
+
+// New method built using bcrypt to compare passwords
+// what is personSchema.methods.comparePassword ?
+// `personSchema.methods.comparePassword` is a method defined on the `personSchema` that allows instances of the `Person` model to compare a provided password (the candidate password) with the hashed password stored in the database.
 
 personSchema.methods.comparePassword = async function (candidatePassword) {
   const person = this;

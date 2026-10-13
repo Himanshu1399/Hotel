@@ -6,7 +6,6 @@ router.post("/", (req, res) => {
     const menuData = req.body;
     const newItem = new menuModel(menuData);
     newItem.save();
-
     res.status(200).json(menuData);
   } catch (error) {
     res.status(500).send("Wrong Data");
