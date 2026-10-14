@@ -1,9 +1,10 @@
 const router = require("express").Router();
 const passport = require("../authentication/auth");
 const personModel = require("../models/person");
+const { jwtAuthMiddleware, generateToken } = require("../authentication/jwt");
 
 // Create
-router.post("/", async (req, res) => {
+router.post("/signup", async (req, res) => {
   try {
     const personData = req.body;
     // Check if the username already exists
@@ -16,27 +17,74 @@ router.post("/", async (req, res) => {
     // Create a new person instance and save it to the database
     const newPerson = new personModel(personData);
     const savedPerson = await newPerson.save();
+    const payLoad = {
+      id: savedPerson.id,
+      username: savedPerson.username,
+    };
+    const token = generateToken(payLoad);
 
     res.status(201).json({
       message: "Person created successfully",
       person: savedPerson,
+      token: token,
     });
   } catch (error) {
-
     return res.status(400).send("Error creating person: " + error.message);
   }
 });
 
+router.post("/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    // console.log(username);
+    const user = await personModel.findOne({ username: username });
+
+    if (!user) {
+      return res.status(401).json({ error: "Username not found" });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid Password" });
+    }
+
+    const payLoad = {
+      id: user.id,
+      username: user.username,
+    };
+    const token = generateToken(payLoad);
+
+    res.json({ token });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 //session: false is used to indicate that we do not want to use sessions for authentication. Instead, we want to use token-based authentication (like JWT) where the client sends the token with each request, and the server verifies it without maintaining a session state.
-router.use(passport.authenticate("local", { session: false }));
+// router.use(passport.authenticate("local", { session: false }));
 
 // Get
-router.get("/", async (req, res) => {
+router.get("/", jwtAuthMiddleware, async (req, res) => {
   try {
     const data = await personModel.find();
     res.status(200).json(data);
   } catch (error) {
     res.status(500).send("Error retrieving persons: " + error.message);
+  }
+});
+//Profile
+router.get("/profile", jwtAuthMiddleware, async (req, res) => {
+  try {
+    console.log("1");
+    const userData = req.user;
+    console.log(userData);
+    const userId = userData.id;
+
+    const user = await personModel.findById(userId);
+    console.log("2");
+    return res.status(401).json({ user });
+  } catch (err) {
+    res.status(500).send("Internal server error");
   }
 });
 
@@ -45,7 +93,7 @@ router.get("/:role", async (req, res) => {
   try {
     const role = req.params.role;
     // Allowed Role
-    const allowedRoles = personModel.schema.path("work").enumValues;// ["Owner", "Manager", "Chef", "Waiter", "Cleaner"];
+    const allowedRoles = personModel.schema.path("work").enumValues; // ["Owner", "Manager", "Chef", "Waiter", "Cleaner"];
     if (!allowedRoles.includes(role)) {
       return res.status(400).send("Invalid role");
     }
